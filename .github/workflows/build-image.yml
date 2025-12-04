@@ -1,0 +1,58 @@
+name: build-image
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-image:
+    name: Build Linux AMD64 Image
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set short SHA
+        id: short-sha
+        run: echo "COMMIT_SHORT_SHA=$(git rev-parse --short ${GITHUB_SHA})" >> ${GITHUB_ENV}
+
+      - name: Build image for linux/amd64
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: codeready-toolchain/argocd-mcp-server
+          tags: latest ${{ env.COMMIT_SHORT_SHA }}
+          containerfiles: Containerfile.yaml
+          platforms: linux/amd64
+          build-args: |
+            OS=linux
+            ARCH=amd64
+
+      - name: Log into quay.io
+        if: github.event_name != 'pull_request'
+        uses: redhat-actions/podman-login@v1
+        with:
+          registry: quay.io
+          username: anandrkskd+githubaction
+          password: ${{ secrets.QUAY_TOKEN }}
+
+      - name: Push to quay.io
+        if: github.event_name != 'pull_request'
+        id: push-to-quay
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.build-image.outputs.image }}
+          tags: ${{ steps.build-image.outputs.tags }}
+          registry: quay.io
+
+      - name: Print image url
+        if: github.event_name != 'pull_request'
+        run: echo "Image pushed to ${{ steps.push-to-quay.outputs.registry-paths }}"
+
