@@ -27,8 +27,9 @@ jobs:
         id: build-image
         uses: redhat-actions/buildah-build@v2
         with:
-          image: quay.io/anandrkskd/codeready-toolchain/argocd-mcp-server
-          tags: latest ${{ env.COMMIT_SHORT_SHA }}
+          image: "quay.io/anandrkskd/argocd-mcp"
+          tags: "latest ${{ env.COMMIT_SHORT_SHA }}"
+          image-with-tag: "quay.io/anandrkskd/argocd-mcp:latest"
           containerfiles: Containerfile.yaml
           platforms: linux/amd64
           build-args: |
